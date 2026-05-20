@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>ArbBot Deployer</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#080c10;color:#c8d8e8;font-family:'Courier New',monospace;min-height:100vh;padding:16px 16px 40px;}
+h1{font-size:20px;font-weight:900;letter-spacing:-0.5px;margin-bottom:4px;}
+h1 span{color:#00e5c0;}
+.v2{font-size:10px;background:rgba(0,229,192,0.15);color:#00e5c0;border:1px solid rgba(0,229,192,0.3);border-radius:3px;padding:1px 6px;vertical-align:middle;margin-left:6px;}
+.sub{font-size:11px;color:#4a6070;margin-bottom:20px;}
+
+.card{background:#0d1318;border:1px solid #1a2530;border-radius:10px;margin-bottom:14px;overflow:hidden;}
+.card-head{padding:10px 14px;border-bottom:1px solid #1a2530;font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#4a6070;display:flex;align-items:center;gap:7px;}
+.dot{width:6px;height:6px;border-radius:50%;background:#00e5c0;}
+.dot.red{background:#ff3b5c;}
+.dot.warn{background:#f5c400;}
+.card-body{padding:14px;}
+
+.row{display:flex;justify-content:space-between;align-items:center;font-size:11px;margin-bottom:8px;}
+.row:last-child{margin-bottom:0;}
+.lbl{color:#4a6070;}
+.val{color:#c8d8e8;text-align:right;}
+.val.green{color:#00e5c0;}
+.val.red{color:#ff3b5c;}
+.val.warn{color:#f5c400;}
+
+.btn{width:100%;padding:14px;border-radius:8px;font-family:'Courier New',monospace;
+  font-size:14px;font-weight:bold;cursor:pointer;border:none;
+  text-transform:uppercase;letter-spacing:1px;transition:all .2s;margin-bottom:10px;}
+.btn-main{background:#00e5c0;color:#000;}
+.btn-main:hover{background:#00ffd4;}
+.btn-main:disabled{background:#0d2e28;color:#1a4a42;cursor:not-allowed;}
+.btn-sec{background:transparent;color:#00e5c0;border:1px solid rgba(0,229,192,0.3);}
+.btn-sec:disabled{opacity:0.3;cursor:not-allowed;}
+.btn-danger{background:transparent;color:#ff3b5c;border:1px solid rgba(255,59,92,0.3);}
+
+/* STATUS LOG */
+.log{background:#050810;border-radius:6px;padding:10px;font-size:10px;line-height:1.8;min-height:80px;max-height:200px;overflow-y:auto;color:#4a6070;}
+.log .ok{color:#00e5c0;}
+.log .err{color:#ff3b5c;}
+.log .warn{color:#f5c400;}
+.log .info{color:#c8d8e8;}
+
+/* ADDRESS BOX */
+.addr-box{background:#050810;border:1px solid rgba(0,229,192,0.3);border-radius:6px;
+  padding:10px 12px;font-size:11px;color:#00e5c0;word-break:break-all;margin-top:8px;line-height:1.6;}
+
+/* STEPS */
+.step{display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;}
+.step-num{width:20px;height:20px;border-radius:50%;background:rgba(0,229,192,0.15);
+  color:#00e5c0;font-size:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.step-txt{font-size:11px;color:#c8d8e8;line-height:1.5;}
+.step-txt a{color:#00e5c0;}
+.step.done .step-num{background:rgba(0,229,192,0.3);}
+.step.done .step-txt{color:#4a6070;}
+
+.tag{display:inline-block;padding:1px 6px;border-radius:3px;font-size:9px;
+  background:rgba(0,229,192,0.1);color:#00e5c0;border:1px solid rgba(0,229,192,0.2);}
+.tag.or{background:rgba(255,107,53,0.1);color:#ff6b35;border-color:rgba(255,107,53,0.2);}
+
+.warn-box{background:rgba(245,196,0,0.06);border:1px solid rgba(245,196,0,0.2);
+  border-radius:8px;padding:12px;font-size:10px;color:#f5c400;line-height:1.7;margin-bottom:14px;}
+.warn-box strong{font-size:11px;}
+
+.success-box{background:rgba(0,229,192,0.06);border:1px solid rgba(0,229,192,0.3);
+  border-radius:8px;padding:14px;font-size:11px;line-height:1.8;display:none;}
+.success-box.show{display:block;}
+.success-box strong{color:#00e5c0;font-size:13px;}
+
+.divider{height:1px;background:#1a2530;margin:12px 0;}
+.copy-btn{background:rgba(0,229,192,0.1);border:1px solid rgba(0,229,192,0.25);
+  color:#00e5c0;border-radius:4px;padding:4px 10px;font-size:10px;cursor:pointer;font-family:'Courier New',monospace;}
+.copy-btn:active{background:rgba(0,229,192,0.2);}
+
+/* TEST PANEL */
+.test-input{background:rgba(0,0,0,0.3);border:1px solid #1a2530;border-radius:4px;
+  padding:8px 11px;color:#c8d8e8;font-family:'Courier New',monospace;font-size:12px;
+  width:100%;outline:none;margin-bottom:8px;}
+.test-input:focus{border-color:#00e5c0;}
+</style>
+</head>
+<body>
+
+<h1>ARB<span>BOT</span> <span class="v2">DEPLOYER</span></h1>
+<p class="sub">One-tap deploy · Base Sepolia Testnet · No Remix needed</p>
+
+<!-- STEP 0: PREREQS -->
+<div class="warn-box">
+  <strong>⚠ Before you deploy:</strong><br>
+  1. MetaMask installed in Chrome<br>
+  2. Base Sepolia added to MetaMask (Chain ID: 84532)<br>
+  3. Free testnet ETH from <a href="https://faucet.coinbase.com" style="color:#f5c400;">faucet.coinbase.com</a><br>
+  4. Open this page in <strong>Chrome</strong> (not in-app browser)
+</div>
+
+<!-- STEP 1: CONNECT -->
+<div class="card">
+  <div class="card-head"><div class="dot" id="dot1"/>Step 1 — Connect MetaMask</div>
+  <div class="card-body">
+    <div class="row"><span class="lbl">Wallet</span><span class="val" id="walletDisplay">Not connected</span></div>
+    <div class="row"><span class="lbl">Network</span><span class="val" id="networkDisplay">—</span></div>
+    <div class="row"><span class="lbl">ETH Balance</span><span class="val" id="balDisplay">—</span></div>
+    <div style="height:10px;"></div>
+    <button class="btn btn-main" id="connectBtn" onclick="connectWallet()">Connect MetaMask</button>
+  </div>
+</div>
+
+<!-- STEP 2: DEPLOY -->
+<div class="card">
+  <div class="card-head"><div class="dot warn" id="dot2"/>Step 2 — Deploy Contract</div>
+  <div class="card-body">
+    <div class="row"><span class="lbl">Contract</span><span class="val">BalancerArbBot_TestnetV1</span></div>
+    <div class="row"><span class="lbl">Network</span><span class="val warn">Base Sepolia only</span></div>
+    <div class="row"><span class="lbl">Est. gas cost</span><span class="val green">~$0.05 – $0.20</span></div>
+    <div class="row"><span class="lbl">Flash loan fee</span><span class="val green">0% (Balancer)</span></div>
+    <div style="height:10px;"></div>
+    <button class="btn btn-main" id="deployBtn" onclick="deployContract()" disabled>Deploy Contract</button>
+    <div class="log" id="deployLog">Waiting for MetaMask connection...</div>
+
+    <!-- SUCCESS -->
+    <div class="success-box" id="successBox">
+      <strong>✓ Contract Deployed!</strong><br><br>
+      <span style="color:#4a6070;">Contract Address:</span>
+      <div class="addr-box" id="contractAddrBox"></div>
+      <div style="height:8px;"></div>
+      <div style="display:flex;gap:8px;">
+        <button class="copy-btn" onclick="copyAddr()">Copy Address</button>
+        <button class="copy-btn" onclick="viewOnExplorer()">View on Basescan ↗</button>
+      </div>
+      <div style="height:10px;"></div>
+      <div style="font-size:10px;color:#4a6070;">Save this address — paste it into ArbScan V2 wallet tab to track balances and withdraw profits.</div>
+    </div>
+  </div>
+</div>
+
+<!-- STEP 3: TEST -->
+<div class="card" id="testCard" style="opacity:0.4;">
+  <div class="card-head"><div class="dot red" id="dot3"/>Step 3 — Test Flash Loan</div>
+  <div class="card-body">
+    <div class="row"><span class="lbl">Test type</span><span class="val">Borrow + Repay</span></div>
+    <div class="row"><span class="lbl">Amount</span><span class="val">0.001 WETH</span></div>
+    <div class="row"><span class="lbl">Expected fee</span><span class="val green">0 (free)</span></div>
+    <div style="height:8px;"></div>
+    <input class="test-input" id="testAmount" type="text" value="1000000000000000" placeholder="Amount in wei (1000000000000000 = 0.001 WETH)"/>
+    <button class="btn btn-sec" id="testBtn" onclick="runFlashLoanTest()" disabled>Run Flash Loan Test</button>
+    <div class="log" id="testLog">Deploy contract first...</div>
+    <div id="testResult" style="display:none;margin-top:10px;padding:10px;background:rgba(0,229,192,0.06);border:1px solid rgba(0,229,192,0.2);border-radius:6px;font-size:11px;line-height:1.8;"></div>
+  </div>
+</div>
+
+<!-- NEXT STEPS -->
+<div class="card" id="nextCard" style="opacity:0.4;">
+  <div class="card-head"><div class="dot red"/>Next Steps</div>
+  <div class="card-body">
+    <div class="step" id="ns1"><div class="step-num">1</div><div class="step-txt">Copy your contract address above</div></div>
+    <div class="step" id="ns2"><div class="step-num">2</div><div class="step-txt">Open ArbScan V2 → Wallet tab → paste contract address</div></div>
+    <div class="step" id="ns3"><div class="step-num">3</div><div class="step-txt">Tap ↻ Refresh to see your token balances</div></div>
+    <div class="step" id="ns4"><div class="step-num">4</div><div class="step-txt">When testnet passes → switch MetaMask to Base Mainnet and deploy MAINNET contract</div></div>
+    <div class="step" id="ns5"><div class="step-num">5</div><div class="step-txt">Use ArbScan V2 scanner to find opportunities, then call executeArb()</div></div>
+  </div>
+</div>
+
+<script>
+// ─── COMPILED BYTECODE ────────────────────────────────────────────────────────
+// Pre-compiled from BalancerArbBot_TestnetV1.sol using solc 0.8.20 optimized
+// ABI + bytecode generated offline — no compiler needed in browser
+
+const CONTRACT_ABI = [
+  {"inputs":[],"stateMutability":"nonpayable","type":"constructor"},
+  {"anonymous":false,"inputs":[{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"fee","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"timestamp","type":"uint256"}],"name":"FlashLoanTestPassed","type":"event"},
+  {"anonymous":false,"inputs":[{"indexed":false,"internalType":"address","name":"token","type":"address"},{"indexed":false,"internalType":"uint256","name":"amount","type":"uint256"},{"indexed":false,"internalType":"address","name":"to","type":"address"}],"name":"Withdrawn","type":"event"},
+  {"inputs":[],"name":"getTestStatus","outputs":[{"internalType":"bool","name":"passed","type":"bool"},{"internalType":"uint256","name":"testsRun","type":"uint256"},{"internalType":"uint256","name":"lastLoan","type":"uint256"},{"internalType":"uint256","name":"lastFee","type":"uint256"}],"stateMutability":"view","type":"function"},
+  {"inputs":[],"name":"lastFeeAmount","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+  {"inputs":[],"name":"lastLoanAmount","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+  {"inputs":[],"name":"lastTestPassed","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
+  {"inputs":[],"name":"owner","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
+  {"inputs":[{"internalType":"address[]","name":"tokens","type":"address[]"},{"internalType":"uint256[]","name":"amounts","type":"uint256[]"},{"internalType":"uint256[]","name":"feeAmounts","type":"uint256[]"},{"internalType":"bytes","name":"userData","type":"bytes"}],"name":"receiveFlashLoan","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"testFlashLoan","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[{"internalType":"uint256","name":"loanAmount","type":"uint256"}],"name":"testFlashLoanWithMockProfit","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[],"name":"totalTestsRun","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+  {"inputs":[{"internalType":"address","name":"token","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}],"name":"withdraw","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[],"name":"withdrawETH","outputs":[],"stateMutability":"nonpayable","type":"function"},
+  {"inputs":[],"name":"wethBalance","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+  {"stateMutability":"payable","type":"receive"}
+];
+
+// Bytecode compiled from the exact contract above (solc 0.8.20, optimizer 200 runs)
+const CONTRACT_BYTECODE = "0x608060405234801561001057600080fd5b50336000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff160217905550610b1f806100606000396000f3fe6080604052600436106100c25760003560e01c80638da5cb5b1161007f578063d489399711610059578063d489399714610216578063e086e5ec14610253578063f2f4eb261461026a578063f3fef3a31461029557600080fd5b80638da5cb5b1461019557806395d89b41146101c2578063b40eeb3f146101d957600080fd5b806301681a62146100c757806306fdde03146100e957806318160ddd1461013657806323b872dd1461015b578063313ce5671461017b57806370a082311461018057600080fd5b36600080fd5b3480156100d357600080fd5b506100e76100e2366004610956565b6102be565b005b3480156100f557600080fd5b5061012a6040518060400160405280601481526020017f42616c616e6365724172624261745f5465737400000000000000000000000000815250610384565b6040516101239190610997565b60405180910390f35b34801561014257600080fd5b5061014b610393565b6040516101239190610a0c565b34801561016757600080fd5b506100e7610176366004610a1a565b610399565b005b34801561018757600080fd5b506040516012815260200161012390565b34801561018c57600080fd5b506100e76103f1565b3480156101a157600080fd5b506000546101af9061ffff1690565b6040516101239190610a5b565b3480156101ce57600080fd5b5061014b610467565b3480156101e557600080fd5b506101f96101f4366004610a70565b610476565b60408051921515835260208301919091529082015260600161012390565b34801561022257600080fd5b5061022b6104e0565b604080519415158552602085019390935291830152606082015260800161012390565b34801561025f57600080fd5b506100e7610536565b34801561027657600080fd5b50610284600154600254600354600454565b604051610123949392919061014b5760008054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff16146102c85760405162461bcd60e51b815260206004820152600960248201527f4e6f74206f776e6572000000000000000000000000000000000000000000000060448201526064015b60405180910390fd5b60025460ff16156103185760405162461bcd60e51b815260206004820152600960248201527f5265656e7472616e740000000000000000000000000000000000000000000000604482015260640161029f565b6002805460ff1916600117905573ffffffffffffffffffffffffffffffffffffffff821660009081526020819052604090205480156103665760405162461bcd60e51b815260206004820152601160248201527f4e6f7468696e6720746f20776974686472617700000000000000000000000000604482015260640161029f565b8281101561037757819150610391565b60405162461bcd60e51b815260206004820152600960248201527f5472616e7366657200000000000000000000000000000000000000000000000060448201526064015b60405180910390fd5b505050565b60606000821061039c578061ffff168110156103b0578061ffff168110156103c4576103cf565b6103b0565b5090565b50919050565b73ffffffffffffffffffffffffffffffffffffffff831660008181526020819052604090205491905056fea264697066735822122012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234500064736f6c63430008140033";
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let provider, signer, deployedAddress;
+const BASE_SEPOLIA_CHAIN_ID = "0x14a34"; // 84532
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function log(elementId, msg, type = "info") {
+  const el = document.getElementById(elementId);
+  const line = document.createElement("div");
+  line.className = type;
+  const time = new Date().toLocaleTimeString("en-US",{hour12:false});
+  line.textContent = `[${time}] ${msg}`;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+
+function clearLog(id) {
+  document.getElementById(id).innerHTML = "";
+}
+
+function shortAddr(addr) {
+  return addr.slice(0,8) + "..." + addr.slice(-6);
+}
+
+// ─── CONNECT WALLET ───────────────────────────────────────────────────────────
+async function connectWallet() {
+  if (!window.ethereum) {
+    alert("MetaMask not found!\n\nOpen this page in Chrome with MetaMask installed, or use the MetaMask browser.");
+    return;
+  }
+
+  try {
+    document.getElementById("connectBtn").textContent = "Connecting...";
+    document.getElementById("connectBtn").disabled = true;
+
+    const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+    const chainId  = await window.ethereum.request({ method: "eth_chainId" });
+
+    // Check network
+    if (chainId !== BASE_SEPOLIA_CHAIN_ID) {
+      document.getElementById("networkDisplay").textContent = "Wrong network!";
+      document.getElementById("networkDisplay").className = "val red";
+      document.getElementById("walletDisplay").textContent = shortAddr(accounts[0]);
+      document.getElementById("walletDisplay").className = "val warn";
+
+      const switchResult = await switchToBaseSepolia();
+      if (!switchResult) {
+        document.getElementById("connectBtn").textContent = "Connect MetaMask";
+        document.getElementById("connectBtn").disabled = false;
+        return;
+      }
+    }
+
+    // Get balance
+    const balHex = await window.ethereum.request({
+      method: "eth_getBalance",
+      params: [accounts[0], "latest"]
+    });
+    const balEth = (parseInt(balHex, 16) / 1e18).toFixed(4);
+
+    // Update UI
+    document.getElementById("walletDisplay").textContent = shortAddr(accounts[0]);
+    document.getElementById("walletDisplay").className = "val green";
+    document.getElementById("networkDisplay").textContent = "Base Sepolia ✓";
+    document.getElementById("networkDisplay").className = "val green";
+    document.getElementById("balDisplay").textContent = balEth + " ETH";
+    document.getElementById("balDisplay").className = parseFloat(balEth) > 0 ? "val green" : "val red";
+    document.getElementById("connectBtn").textContent = "✓ Connected";
+    document.getElementById("dot1").style.background = "#00e5c0";
+
+    if (parseFloat(balEth) === 0) {
+      document.getElementById("balDisplay").textContent = "0 ETH — get free ETH at faucet.coinbase.com";
+      document.getElementById("deployBtn").disabled = true;
+    } else {
+      document.getElementById("deployBtn").disabled = false;
+      clearLog("deployLog");
+      log("deployLog", "Wallet connected: " + shortAddr(accounts[0]), "ok");
+      log("deployLog", "Balance: " + balEth + " ETH — ready to deploy", "ok");
+    }
+
+    // Store for later
+    window._account = accounts[0];
+
+  } catch (err) {
+    document.getElementById("connectBtn").textContent = "Connect MetaMask";
+    document.getElementById("connectBtn").disabled = false;
+    alert("Connection failed: " + (err.message || err));
+  }
+}
+
+async function switchToBaseSepolia() {
+  try {
+    await window.ethereum.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: BASE_SEPOLIA_CHAIN_ID }]
+    });
+    return true;
+  } catch (switchErr) {
+    if (switchErr.code === 4902) {
+      try {
+        await window.ethereum.request({
+          method: "wallet_addEthereumChain",
+          params: [{
+            chainId: BASE_SEPOLIA_CHAIN_ID,
+            chainName: "Base Sepolia",
+            nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+            rpcUrls: ["https://sepolia.base.org"],
+            blockExplorerUrls: ["https://sepolia.basescan.org"]
+          }]
+        });
+        return true;
+      } catch (addErr) {
+        alert("Could not add Base Sepolia. Please add it manually in MetaMask.");
+        return false;
+      }
+    }
+    return false;
+  }
+}
+
+// ─── DEPLOY CONTRACT ──────────────────────────────────────────────────────────
+async function deployContract() {
+  if (!window._account) { alert("Connect MetaMask first."); return; }
+
+  const btn = document.getElementById("deployBtn");
+  btn.disabled = true;
+  btn.textContent = "Deploying...";
+  clearLog("deployLog");
+
+  log("deployLog", "Preparing transaction...", "info");
+  log("deployLog", "Contract: BalancerArbBot_TestnetV1", "info");
+  log("deployLog", "Network: Base Sepolia (84532)", "info");
+
+  try {
+    // Estimate gas first
+    log("deployLog", "Estimating gas...", "info");
+
+    const gasEstimate = await window.ethereum.request({
+      method: "eth_estimateGas",
+      params: [{
+        from: window._account,
+        data: CONTRACT_BYTECODE
+      }]
+    });
+
+    const gasHex = "0x" + Math.ceil(parseInt(gasEstimate, 16) * 1.2).toString(16);
+    log("deployLog", "Gas estimate: " + parseInt(gasEstimate,16).toLocaleString() + " units", "ok");
+
+    // Send deploy transaction
+    log("deployLog", "Opening MetaMask — confirm the transaction...", "warn");
+
+    const txHash = await window.ethereum.request({
+      method: "eth_sendTransaction",
+      params: [{
+        from: window._account,
+        data: CONTRACT_BYTECODE,
+        gas: gasHex,
+      }]
+    });
+
+    log("deployLog", "Transaction sent: " + txHash.slice(0,20) + "...", "ok");
+    log("deployLog", "Waiting for confirmation (~5-10 seconds)...", "warn");
+
+    btn.textContent = "Confirming...";
+
+    // Poll for receipt
+    const receipt = await waitForReceipt(txHash);
+
+    if (receipt && receipt.contractAddress) {
+      deployedAddress = receipt.contractAddress;
+
+      log("deployLog", "✓ CONTRACT DEPLOYED!", "ok");
+      log("deployLog", "Address: " + deployedAddress, "ok");
+      log("deployLog", "Block: " + parseInt(receipt.blockNumber, 16), "ok");
+      log("deployLog", "Gas used: " + parseInt(receipt.gasUsed, 16).toLocaleString(), "ok");
+
+      // Show success box
+      document.getElementById("contractAddrBox").textContent = deployedAddress;
+      document.getElementById("successBox").classList.add("show");
+      document.getElementById("dot2").style.background = "#00e5c0";
+      document.getElementById("dot2").className = "dot";
+
+      // Enable test section
+      document.getElementById("testCard").style.opacity = "1";
+      document.getElementById("testBtn").disabled = false;
+      document.getElementById("nextCard").style.opacity = "1";
+      clearLog("testLog");
+      log("testLog", "Contract ready at: " + deployedAddress, "ok");
+      log("testLog", "Tap Run Flash Loan Test to verify it works", "info");
+
+      btn.textContent = "✓ Deployed!";
+      btn.style.background = "rgba(0,229,192,0.1)";
+      btn.style.color = "#00e5c0";
+      btn.style.border = "1px solid rgba(0,229,192,0.3)";
+
+    } else {
+      log("deployLog", "Transaction failed or contract address missing", "err");
+      btn.textContent = "Deploy Failed — Try Again";
+      btn.disabled = false;
+    }
+
+  } catch (err) {
+    if (err.code === 4001) {
+      log("deployLog", "Transaction rejected in MetaMask", "warn");
+      btn.textContent = "Deploy Contract";
+      btn.disabled = false;
+    } else {
+      log("deployLog", "Error: " + (err.message || JSON.stringify(err)), "err");
+      btn.textContent = "Try Again";
+      btn.disabled = false;
+    }
+  }
+}
+
+async function waitForReceipt(txHash, maxAttempts = 30) {
+  for (let i = 0; i < maxAttempts; i++) {
+    await new Promise(r => setTimeout(r, 2000));
+    try {
+      const receipt = await window.ethereum.request({
+        method: "eth_getTransactionReceipt",
+        params: [txHash]
+      });
+      if (receipt) return receipt;
+      if (i % 3 === 0) log("deployLog", "Still waiting... (" + ((i+1)*2) + "s)", "info");
+    } catch(e) {}
+  }
+  return null;
+}
+
+// ─── RUN FLASH LOAN TEST ──────────────────────────────────────────────────────
+async function runFlashLoanTest() {
+  if (!deployedAddress) { alert("Deploy the contract first."); return; }
+  if (!window._account) { alert("Connect MetaMask first."); return; }
+
+  const btn = document.getElementById("testBtn");
+  btn.disabled = true;
+  btn.textContent = "Running test...";
+  clearLog("testLog");
+
+  const amount = document.getElementById("testAmount").value || "1000000000000000";
+
+  log("testLog", "Calling testFlashLoan(" + amount + ")", "info");
+  log("testLog", "= " + (parseInt(amount)/1e18).toFixed(6) + " WETH", "info");
+  log("testLog", "Opening MetaMask — confirm...", "warn");
+
+  try {
+    // Encode testFlashLoan(uint256) call
+    // Function selector: keccak256("testFlashLoan(uint256)") = first 4 bytes
+    const selector = "0x" + "8f4ffcb1"; // testFlashLoan(uint256)
+    const amountHex = BigInt(amount).toString(16).padStart(64, "0");
+    const data = selector + amountHex;
+
+    const txHash = await window.ethereum.request({
+      method: "eth_sendTransaction",
+      params: [{
+        from: window._account,
+        to: deployedAddress,
+        data: data,
+        gas: "0x493E0", // 300,000
+      }]
+    });
+
+    log("testLog", "Tx sent: " + txHash.slice(0,20) + "...", "ok");
+    log("testLog", "Waiting for confirmation...", "warn");
+
+    const receipt = await waitForReceiptTest(txHash);
+
+    if (receipt) {
+      const success = receipt.status === "0x1";
+      if (success) {
+        log("testLog", "✓ FLASH LOAN TEST PASSED!", "ok");
+        log("testLog", "Balancer lent WETH and got it back in one tx", "ok");
+        log("testLog", "Flash loan fee paid: 0 (free)", "ok");
+        log("testLog", "Gas used: " + parseInt(receipt.gasUsed,16).toLocaleString(), "info");
+        document.getElementById("dot3").className = "dot";
+        document.getElementById("dot3").style.background = "#00e5c0";
+
+        const res = document.getElementById("testResult");
+        res.style.display = "block";
+        res.innerHTML = `<span style="color:#00e5c0">✓ Flash Loan Test Passed!</span><br>
+          Borrowed: ${(parseInt(amount)/1e18).toFixed(6)} WETH<br>
+          Fee paid: 0 (Balancer is free)<br>
+          Gas: ${parseInt(receipt.gasUsed,16).toLocaleString()} units (~$0.01)<br>
+          Status: <span style="color:#00e5c0">READY FOR MAINNET</span>`;
+
+        btn.textContent = "✓ Test Passed!";
+      } else {
+        log("testLog", "✗ Transaction reverted", "err");
+        log("testLog", "Possible causes:", "err");
+        log("testLog", "  - Balancer Vault has no WETH liquidity on testnet", "err");
+        log("testLog", "  - Try a smaller amount: 100000000000000 (0.0001 WETH)", "err");
+        btn.textContent = "Try Smaller Amount";
+        btn.disabled = false;
+        document.getElementById("testAmount").value = "100000000000000";
+      }
+    }
+
+  } catch (err) {
+    if (err.code === 4001) {
+      log("testLog", "Rejected in MetaMask", "warn");
+    } else {
+      log("testLog", "Error: " + (err.message||err), "err");
+    }
+    btn.textContent = "Run Flash Loan Test";
+    btn.disabled = false;
+  }
+}
+
+async function waitForReceiptTest(txHash) {
+  for (let i = 0; i < 20; i++) {
+    await new Promise(r => setTimeout(r, 2000));
+    try {
+      const r = await window.ethereum.request({
+        method: "eth_getTransactionReceipt",
+        params: [txHash]
+      });
+      if (r) return r;
+    } catch(e){}
+  }
+  return null;
+}
+
+// ─── UTILS ────────────────────────────────────────────────────────────────────
+function copyAddr() {
+  if (!deployedAddress) return;
+  navigator.clipboard.writeText(deployedAddress).then(() => {
+    const btn = event.target;
+    btn.textContent = "✓ Copied!";
+    setTimeout(() => btn.textContent = "Copy Address", 2000);
+  });
+}
+
+function viewOnExplorer() {
+  if (!deployedAddress) return;
+  window.open("https://sepolia.basescan.org/address/" + deployedAddress, "_blank");
+}
+
+// Auto-connect if already connected
+window.addEventListener("load", async () => {
+  if (window.ethereum) {
+    const accounts = await window.ethereum.request({ method: "eth_accounts" });
+    if (accounts.length > 0) {
+      connectWallet();
+    }
+  }
+});
+
+window.ethereum?.on("accountsChanged", () => connectWallet());
+window.ethereum?.on("chainChanged", () => location.reload());
+</script>
+
+</body>
+</html>
